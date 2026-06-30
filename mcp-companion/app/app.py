@@ -59,11 +59,11 @@ def create_app() -> FastAPI:
     def capabilities(_: None = Depends(require_auth)) -> dict[str, Any]:
         options = load_options()
         return {
-            "supervisor_token_present": bool(os.getenv("SUPERVISOR_TOKEN")),
+            "supervisor_token_present": bool(supervisor_token()),
             "config_root_exists": CONFIG_ROOT.exists(),
             "allowed_config_roots": options.allowed_config_roots,
             "supports": {
-                "supervisor_backups": bool(os.getenv("SUPERVISOR_TOKEN")),
+                "supervisor_backups": bool(supervisor_token()),
                 "config_file_read": True,
                 "config_file_write_with_backup": True,
                 "config_file_restore": True,
@@ -133,7 +133,7 @@ def create_app() -> FastAPI:
         request: BackupRequest,
         _: None = Depends(require_auth),
     ) -> dict[str, Any]:
-        if not os.getenv("SUPERVISOR_TOKEN"):
+        if not supervisor_token():
             raise HTTPException(
                 status_code=503,
                 detail="SUPERVISOR_TOKEN is not available in this add-on.",
@@ -241,7 +241,7 @@ def supervisor_request(
     path: str,
     payload: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    token = os.getenv("SUPERVISOR_TOKEN")
+    token = supervisor_token()
     if not token:
         raise HTTPException(status_code=503, detail="SUPERVISOR_TOKEN is unavailable.")
 
@@ -269,6 +269,10 @@ def supervisor_request(
     if not content:
         return {}
     return json.loads(content.decode("utf-8"))
+
+
+def supervisor_token() -> str:
+    return os.getenv("SUPERVISOR_TOKEN") or os.getenv("HASSIO_TOKEN") or ""
 
 
 def sha256_file(path: Path) -> str:

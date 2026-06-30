@@ -1,5 +1,5 @@
 name: MCP Companion
-version: "0.1.0"
+version: "0.1.1"
 slug: mcp_companion
 description: Authenticated companion service for a local Home Assistant MCP server.
 url: https://github.com/pbadinger/homeassistant-mcp-addon/tree/main/mcp-companion
@@ -13,6 +13,7 @@ startup: services
 boot: auto
 init: false
 hassio_api: true
+hassio_role: manager
 homeassistant_api: true
 map:
   - config:rw
