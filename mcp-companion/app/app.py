@@ -19,7 +19,7 @@ import uvicorn
 OPTIONS_PATH = Path("/data/options.json")
 CONFIG_ROOT = Path("/config")
 BACKUP_ROOT = CONFIG_ROOT / ".mcp_companion_backups"
-APP_VERSION = "0.1.2"
+APP_VERSION = "0.1.3"
 
 
 class CompanionOptions(BaseModel):
@@ -37,6 +37,11 @@ class FileWriteRequest(BaseModel):
     content: str
     expected_sha256: str | None = None
     create_missing: bool = False
+
+
+class FileDeleteRequest(BaseModel):
+    path: str
+    expected_sha256: str
 
 
 class BackupRequest(BaseModel):
@@ -67,6 +72,7 @@ def create_app() -> FastAPI:
                 "supervisor_backups": bool(supervisor_token()),
                 "config_file_read": True,
                 "config_file_write_with_backup": True,
+                "config_file_delete_with_backup": True,
                 "config_file_restore": True,
             },
         }
@@ -108,6 +114,27 @@ def create_app() -> FastAPI:
             "path": str(path),
             "sha256": sha256_text(request.content),
             "backup_path": str(backup_path) if backup_path else None,
+        }
+
+    @app.post("/config/delete")
+    def delete_config_file(
+        request: FileDeleteRequest,
+        _: None = Depends(require_auth),
+    ) -> dict[str, Any]:
+        path = resolve_allowed_path(request.path)
+        if not path.exists() or not path.is_file():
+            raise HTTPException(status_code=404, detail="File not found.")
+        current = path.read_text(encoding="utf-8")
+        if sha256_text(current) != request.expected_sha256:
+            raise HTTPException(status_code=409, detail="Hash precondition failed.")
+
+        backup_path = backup_file(path)
+        path.unlink()
+        return {
+            "path": str(path),
+            "deleted": True,
+            "backup_path": str(backup_path),
+            "sha256": sha256_text(current),
         }
 
     @app.post("/config/restore")
