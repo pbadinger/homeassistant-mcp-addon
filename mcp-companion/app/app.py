@@ -19,6 +19,7 @@ import uvicorn
 OPTIONS_PATH = Path("/data/options.json")
 CONFIG_ROOT = Path("/config")
 BACKUP_ROOT = CONFIG_ROOT / ".mcp_companion_backups"
+APP_VERSION = "0.1.2"
 
 
 class CompanionOptions(BaseModel):
@@ -53,7 +54,7 @@ def create_app() -> FastAPI:
 
     @app.get("/health")
     def health() -> dict[str, Any]:
-        return {"ok": True, "name": "mcp-companion"}
+        return {"ok": True, "name": "mcp-companion", "version": APP_VERSION}
 
     @app.get("/capabilities")
     def capabilities(_: None = Depends(require_auth)) -> dict[str, Any]:
